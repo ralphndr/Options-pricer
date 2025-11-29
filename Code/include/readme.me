@@ -1,1 +1,16 @@
+```markdown
+# Headers du projet
+
+Ce dossier contient tous les fichiers d'en-tête (`.hpp`) du projet, qui définissent les classes et interfaces utilisées :
+
+- `MarketData.hpp` : encapsule les paramètres financiers (taux sans risque, volatilité).  
+- `Option.hpp` : classe abstraite pour une option.  
+- `EuropeanOption.hpp` : dérivée de `Option`, définit les calls et puts européens.  
+- `AmericanOption.hpp` : dérivée de `Option`, définit les options américaines avec fonction payoff.  
+- `PDESolver.hpp` : classe abstraite pour les solveurs de PDE.  
+- `ExplicitSolver.hpp`, `ImplicitSolver.hpp`, `CrankNicolsonSolver.hpp` : solveurs européens.  
+- `AmericanSolver.hpp` : solveur pour les options américaines avec exercice anticipé.  
+- `Grid.hpp` : structure pour la discrétisation en prix et temps.
+
+Chaque fichier `.hpp` contient la déclaration des classes et des méthodes, mais pas leur implémentation.
 
