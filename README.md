@@ -19,4 +19,4 @@ Depuis le terminal, place-toi à la racine du dossier `Code` et utilise :
 
 ```bash
 g++ src/*.cpp -Iinclude -std=c++17 -o OptionPricer.exe -mconsole
-./OptionPricer.exe   # sur Windows PowerShell
+./OptionPricer.exe  
