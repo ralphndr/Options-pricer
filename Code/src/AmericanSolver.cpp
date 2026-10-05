@@ -1,6 +1,7 @@
 #include "../include/AmericanSolver.hpp"
 #include <vector>
 #include <algorithm>
+#include <cmath>
 
 // Constructeur du solveur pour option américaine.
 // Initialise la grille et les paramètres via le constructeur de PDESolver.
@@ -33,6 +34,11 @@ double AmericanSolver::price() {
     for(int j = N-1; j >= 0; j--) {
         double tau = j * dt;
         double time_to_expiry = T - tau;
+
+        // FIX: boundary values at the new time level, needed in the implicit RHS
+        double S_bound = M * dS;
+        double lower_bc = is_call ? 0.0 : option.getStrike() * std::exp(-r * time_to_expiry);
+        double upper_bc = is_call ? S_bound - option.getStrike() * std::exp(-r * time_to_expiry) : 0.0;
         
         // Construction des coefficients de la matrice tridiagonale et du vecteur d
         for(int i = 1; i < M; i++) {
@@ -46,6 +52,11 @@ double AmericanSolver::price() {
             c[i-1] = -gamma;
 
             d[i-1] = alpha*grid.get(i-1,j+1) + (1+beta)*grid.get(i,j+1) + gamma*grid.get(i+1,j+1);
+
+            // FIX: previously missing; without these terms the American call
+            // could price below the European call (10.2056 < 10.2917 in the report)
+            if(i==1)   d[i-1] -= a[i-1] * lower_bc;
+            if(i==M-1) d[i-1] -= c[i-1] * upper_bc;
         }
 
         // Résolution tridiagonale par l'algorithme de Thomas

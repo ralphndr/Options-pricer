@@ -3,6 +3,7 @@
 #include "../include/ExoticOption.hpp"
 #include <vector>
 #include <iostream>
+#include <cmath>
 
 // Constructeur du solveur Crank–Nicolson.
 // Initialise l'option, les données de marché et la grille via le constructeur PDESolver.
@@ -26,6 +27,23 @@ double CrankNicolsonSolver::price() {
 
     std::vector<double> a(M-1), b(M-1), c(M-1), d(M-1);
     double T = N * dt;  // Temps total jusqu'à l'échéance
+
+    // FIX: barrier must be imposed at EVERY time step, not after the full solve.
+    // Knock-out: value is zero wherever the barrier is breached (same convention
+    // as ImplicitSolver: call -> up barrier, put -> down barrier).
+    // Knock-in options are priced in main.cpp via parity: V_in = V_euro - V_out.
+    auto apply_barrier_row = [&](int j) {
+        if (const BarrierOption* bo = dynamic_cast<const BarrierOption*>(&option)) {
+            bool call = (bo->getOptionType() == OptionType::Call);
+            double B = bo->getBarrierLevel();
+            for (int i = 0; i <= M; ++i) {
+                double S = i * dS;
+                bool breached = call ? (S >= B) : (S <= B);
+                if (breached) grid.set(i, j, 0.0);
+            }
+        }
+    };
+    apply_barrier_row(N);
 
     // Identification du type d'option pour les conditions aux bords
     bool is_call = true;
@@ -103,37 +121,7 @@ double CrankNicolsonSolver::price() {
         for(int i=1;i<M;i++) grid.set(i,j,d[i-1]);
         grid.set(0,j,lower_bc);
         grid.set(M,j,upper_bc);
-    }
-
-    // Post-traitement : application des conditions de barrière après résolution PDE
-    if (const BarrierOption* bo = dynamic_cast<const BarrierOption*>(&option)) {
-        bool knockIn = bo->isKnockIn();
-        bool call = (bo->getOptionType() == OptionType::Call);
-        double B = bo->getBarrierLevel();
-        
-        // Boucle sur tous les points de la grille pour appliquer la barrière
-        for (int j = N; j >= 0; --j) {
-            for (int i = 0; i <= M; ++i) {
-                double S = i * dS;
-                bool hitBarrier;
-                
-                if (call) {
-                    // Call : barrière en haut
-                    hitBarrier = (S >= B);
-                } else {
-                    // Put : barrière en bas
-                    hitBarrier = (S <= B);
-                }
-                
-                if (knockIn) {
-                    // Knock-in : valeur nulle si barrière NON atteinte
-                    if (!hitBarrier) grid.set(i, j, 0.0);
-                } else {
-                    // Knock-out : valeur nulle si barrière atteinte
-                    if (hitBarrier) grid.set(i, j, 0.0);
-                }
-            }
-        }
+        apply_barrier_row(j);   // FIX: barrier condition at this time step
     }
 
     // Retour de la valeur interpolée au strike

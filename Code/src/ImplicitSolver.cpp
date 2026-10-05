@@ -2,6 +2,7 @@
 #include "../include/VanillaOption.hpp"
 #include "../include/ExoticOption.hpp"
 #include <vector>
+#include <cmath>
 #include <iostream>
 
 // Constructeur du solveur implicite.

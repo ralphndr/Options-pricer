@@ -230,20 +230,22 @@ MCResult mc_price(const std::string& classeOption,
     // Simulation des chemins
     if (params.antithetic) {
         // Antithétique: chaque paire réutilise les mêmes nombres z et -z
-        int nbPaires = (nbChemins + 1) / 2;
+        // FIX: the two paths of a pair are negatively correlated, so they are NOT
+        // independent samples. The correct standard error uses the pair AVERAGES,
+        // which are i.i.d. across pairs.
+        int nbPaires = nbChemins / 2;
+        double sommePaires = 0.0, sommeCarresPaires = 0.0;
         for (int p = 0; p < nbPaires; ++p) {
-            // Chemin 1: utilise z directement
-            double payoff1 = simulate_path(zs, nbSautsVec, zSautsVec, p, false);
-            somme += payoff1;
-            sommeCarres += payoff1 * payoff1;
-
-            // Chemin 2: utilise -z (réutilise le même "p" pour les nombres, mais avec signe opposé)
-            if (2 * p + 1 < nbChemins) {
-                double payoff2 = simulate_path(zs, nbSautsVec, zSautsVec, p, true);
-                somme += payoff2;
-                sommeCarres += payoff2 * payoff2;
-            }
+            double payoff1 = simulate_path(zs, nbSautsVec, zSautsVec, p, false); // z
+            double payoff2 = simulate_path(zs, nbSautsVec, zSautsVec, p, true);  // -z
+            double moyPaire = 0.5 * (payoff1 + payoff2);
+            sommePaires += moyPaire;
+            sommeCarresPaires += moyPaire * moyPaire;
         }
+        double moy = sommePaires / nbPaires;
+        double var = sommeCarresPaires / nbPaires - moy * moy;
+        if (var < 0.0) var = 0.0;
+        return { moy, std::sqrt(var / nbPaires) };
     } else {
         // Sans antithétique: chemins indépendants, chacun utilise un ensemble de nombres unique
         for (int i = 0; i < nbChemins; ++i) {

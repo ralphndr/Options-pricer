@@ -8,6 +8,7 @@
 #include <limits>
 #include <memory>
 #include <chrono>
+#include <cmath>
 // formatting
 #include <iomanip>
 // Project headers
